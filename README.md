@@ -4,3 +4,4 @@ To run the application:
 3. Install requirements - pip install -r requirements.txt
 4. To store emails in local folder, run the application and provide path_to_folder- python email-manager.py --folder <path_to_folder>
 5. To upload emails to S3 storage service, run the application with '--upload' flag
+6. To generate HTML report of uploased files, run the application with '--report' flag
