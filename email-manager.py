@@ -4,15 +4,36 @@ import os
 from datetime import datetime, timedelta
 from O365 import Inbox
 
+import boto
+import boto.s3
+from boto.s3.key import Key
+
+AWS_ACCESS_KEY_ID = 'AKIAJXGFTPO37WU6APVA'
+AWS_SECRET_ACCESS_KEY = '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'
+bucket_name = 'interview-exercises'
+region = 'eu-central-1'
+
+
 parser = argparse.ArgumentParser()
 
 
 class EmailManager(object):
-    def __init__(self, mail_folder):
+    def __init__(self, mail_folder, upload):
         self.mail_folder = mail_folder
+        self.upload = upload
         self.username = 'qa.ex@office365.ecknhhk.xyz'
         self.password = 'ew68I7W52p*W'
         self.suffix = '.txt'
+        if self.upload:
+            self.conn = boto.s3.connect_to_region(region,
+                                                  aws_access_key_id=AWS_ACCESS_KEY_ID,
+                                                  aws_secret_access_key=AWS_SECRET_ACCESS_KEY,)
+
+            bucket = self.conn.lookup(bucket_name)
+            self.k = Key(bucket)
+        else:
+            if not os.path.exists(self.mail_folder):
+                os.makedirs(self.mail_folder)
 
     def _get_twenty_four_hours_ago_datetime(self):
         """
@@ -80,17 +101,32 @@ class EmailManager(object):
         f.write(content)
         f.close()
 
+    def upload_file(self, filename, content):
+        """
+        Upload file to S3
+        :param filename: filename
+        :param content: file content
+        :return: download_url string
+        """
+        self.k.key = filename
+        self.k.set_contents_from_string(content)
+        download_url = self.k.generate_url(expires_in=60)
+        print download_url
+        return download_url
+
     def main(self):
         emails = self.fetch_emails()
-        if not os.path.exists(self.mail_folder):
-            os.makedirs(self.mail_folder)
         for email in emails:
             filename = self._get_filename(email)
             filepath = os.path.join(self.mail_folder, filename + self.suffix)
             content = self._format_email(email)
-            self.write_file(filepath, content)
+            if self.upload:
+                self.upload_file(filename, content)
+            else:
+                self.write_file(filepath, content)
 
 if __name__ == "__main__":
     parser.add_argument('--folder', dest='mail_folder', required=True, help='Fullpath to local destination folder')
+    parser.add_argument('--upload', dest='upload', action='store_true', help='Upload emails to S3 storage')
     emailmanager = EmailManager(**vars(parser.parse_args()))
     emailmanager.main()
