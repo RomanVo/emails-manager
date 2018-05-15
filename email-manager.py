@@ -189,7 +189,7 @@ class EmailManager(object):
                                   'from': self._get_from(email),
                                   'to': self._get_to(email),
                                   'subject': self._get_subject(email),
-                                  'link': download_url}
+                                  'link': str(download_url)}
                 self.tabledata.append(email_metadata)
             else:
                 self.write_file(filepath, content)
